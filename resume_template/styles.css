@@ -1,0 +1,249 @@
+:root {
+  --primary-color: #0d1321;
+  --secondary-color: #3e5c76;
+  --accent-color: #1d7068; /* Subtle green accent inspired by the Canva template */
+  --bg-main: #ffffff;
+  --bg-sidebar: #f8fafc;
+  --text-main: #1f2937;
+  --text-muted: #475569;
+  --text-light: #94a3b8;
+  --border-color: #e2e8f0;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: #cbd5e1; /* Gray background for viewing on screen */
+  color: var(--text-main);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Page constraints to match A4 proportions */
+.page-container {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 2rem auto;
+  background-color: var(--bg-main);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  display: flex;
+  overflow: hidden;
+}
+
+/* Sidebar Layout */
+.sidebar {
+  width: 32%;
+  background-color: var(--bg-sidebar);
+  padding: 40px 30px;
+  border-right: 1px solid var(--border-color);
+}
+
+.profile-header {
+  margin-bottom: 40px;
+}
+
+.name {
+  font-family: 'Merriweather', serif;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary-color);
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent-color);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+}
+
+.sidebar-section {
+  margin-bottom: 30px;
+}
+
+.section-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 1.5px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 6px;
+}
+
+.contact-list {
+  list-style: none;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.contact-list li {
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+}
+
+.contact-list a {
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.2s;
+}
+
+.contact-list a:hover {
+  color: var(--accent-color);
+}
+
+.skill-category {
+  margin-bottom: 14px;
+}
+
+.skill-category h4 {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--secondary-color);
+  margin-bottom: 2px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.skill-category p {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+/* Main Content Layout */
+.main-content {
+  width: 68%;
+  padding: 40px;
+}
+
+.main-section-title {
+  font-family: 'Merriweather', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--primary-color);
+  margin-bottom: 16px;
+  padding-bottom: 6px;
+  border-bottom: 2px solid var(--primary-color);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.content-section {
+  margin-bottom: 30px;
+}
+
+.summary-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  line-height: 1.6;
+}
+
+.experience-item {
+  margin-bottom: 20px;
+}
+
+.experience-item:last-child {
+  margin-bottom: 0;
+}
+
+.exp-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 8px;
+}
+
+.job-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+.company {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--accent-color);
+  margin-top: 2px;
+}
+
+.dates {
+  font-size: 12px;
+  color: var(--text-light);
+  font-weight: 500;
+  white-space: nowrap;
+  margin-left: 10px;
+}
+
+.bullet-list {
+  list-style: none;
+  padding-left: 0;
+}
+
+.bullet-list li {
+  position: relative;
+  font-size: 12px;
+  color: var(--text-muted);
+  padding-left: 14px;
+  margin-bottom: 6px;
+  line-height: 1.6;
+}
+
+.bullet-list li::before {
+  content: "■";
+  position: absolute;
+  left: 0;
+  top: 1px;
+  font-size: 8px;
+  color: var(--accent-color);
+}
+
+/* Print Optimization for PDF Export */
+@media print {
+  body {
+    background-color: white;
+  }
+  
+  .page-container {
+    margin: 0;
+    box-shadow: none;
+    width: 210mm;
+    height: 297mm; /* Force exact A4 size */
+    overflow: hidden;
+  }
+
+  /* Force background colors to print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
+/* Mobile Responsiveness for viewing in browser */
+@media (max-width: 768px) {
+  .page-container {
+    flex-direction: column;
+    width: 100%;
+    margin: 0;
+    min-height: auto;
+  }
+  
+  .sidebar, .main-content {
+    width: 100%;
+  }
+  
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
