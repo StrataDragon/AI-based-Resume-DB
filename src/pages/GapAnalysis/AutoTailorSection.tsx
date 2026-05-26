@@ -7,6 +7,7 @@ import { useTailoringWorkflow } from '@/hooks/useTailoringWorkflow';
 import TailoringStatus from './TailoringStatus';
 import ResumeDiffPreview from '@/components/ResumeDiffPreview';
 import { TailoredResumeResult } from '@/types/tailoring';
+import PdfDiffViewer from '@/components/PdfDiffViewer';
 
 interface AutoTailorSectionProps {
   resumeId: string;
@@ -23,6 +24,7 @@ export default function AutoTailorSection({
   const [customInstructions, setCustomInstructions] = useState('');
   const [template, setTemplate] = useState<'current' | 'index_html'>('index_html');
   const [showAdvanced, setShowAdvanced] = useState(false);
+  const [activeChangeId, setActiveChangeId] = useState<string | undefined>();
 
   const handleStartTailoring = async () => {
     try {
@@ -99,10 +101,20 @@ export default function AutoTailorSection({
             Template used: <span className="font-semibold">{workflow.result.metadata.template === 'index_html' ? 'Index HTML Template' : 'Current Template'}</span>
           </div>
 
+          {/* Fix 6: Dynamic visual comparison component setup with automatic property mapping */}
+          <PdfDiffViewer
+            resumeId={Number(resumeId)}
+            tailorId={workflow.result.tailorId}
+            changes={workflow.result.changes}
+            activeChangeId={activeChangeId}
+            onChangeIdChange={setActiveChangeId}
+          />
+
           <ResumeDiffPreview
             changes={workflow.result.changes}
             originalContent={workflow.result.originalResume.content}
             tailoredContent={workflow.result.tailoredResume.content}
+            onChangeClick={(changeId) => setActiveChangeId(changeId)}
           />
 
           <Button

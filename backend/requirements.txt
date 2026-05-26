@@ -16,3 +16,4 @@ psycopg2-binary
 requests
 faiss-cpu
 tiktoken
+reportlab

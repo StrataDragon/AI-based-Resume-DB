@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Database, Table, Key, ArrowRight } from "lucide-react";
+import { Database, Table, Key, ArrowRight, Activity, ShieldCheck } from "lucide-react";
 import PageHeader from "@/components/PageHeader";
 
 const tables = [
@@ -121,6 +121,53 @@ export default function SchemaView() {
             )}
           </motion.div>
         ))}
+      </motion.div>
+
+      <motion.div variants={item} initial="hidden" animate="show" className="mt-8 space-y-6">
+        <div>
+          <h2 className="text-xl font-bold text-foreground mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
+            <Activity className="w-5 h-5 text-primary" />
+            Active Triggers & Event Listeners
+          </h2>
+          <div className="glass-panel p-5 space-y-4">
+            <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
+              <h3 className="font-semibold text-primary mb-2">Audit Logging System (SQLAlchemy Events)</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                The backend utilizes SQLAlchemy ORM event listeners (<code>after_insert</code>, <code>after_update</code>, <code>after_delete</code>) acting as application-level triggers. These intercept any modifications to core tables and automatically record the changes in the <code className="bg-slate-100 text-slate-800 px-1 rounded text-xs">audit_logs</code> table.
+              </p>
+              <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
+                <li><span className="font-medium text-slate-800">after_insert:</span> Captures initial state of a newly created record.</li>
+                <li><span className="font-medium text-slate-800">after_update:</span> Compares old vs. new values and logs only the attributes that changed.</li>
+                <li><span className="font-medium text-slate-800">after_delete:</span> Logs the final state of a record before it is removed from the database.</li>
+              </ul>
+              <p className="text-xs text-muted-foreground mt-3 pt-3 border-t border-border/50">
+                <strong>Tracked Tables:</strong> candidates, resumes, skills, resume_skills, job_descriptions, jd_skills, match_results, resume_versions.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-xl font-bold text-foreground mb-4 border-b border-border/50 pb-2 flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+            Database Assertions & Constraints
+          </h2>
+          <div className="glass-panel p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/10">
+              <h3 className="font-semibold text-amber-700 mb-2">Unique Constraints</h3>
+              <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
+                <li><code className="text-xs font-mono">candidates.email</code> must be globally unique.</li>
+                <li><code className="text-xs font-mono">skills.name</code> prevents duplicate skill definitions.</li>
+              </ul>
+            </div>
+            <div className="p-4 rounded-lg bg-indigo-500/5 border border-indigo-500/10">
+              <h3 className="font-semibold text-indigo-700 mb-2">Cascade Rules</h3>
+              <ul className="list-disc list-inside text-sm text-slate-600 space-y-1">
+                <li><code className="text-xs font-mono">job_descriptions</code> -{'>'} <code className="text-xs font-mono">jd_skills</code>: Configured with <code className="text-xs font-mono">ondelete="CASCADE"</code> to automatically prune orphaned skill requirements.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
       </motion.div>
     </div>
   );

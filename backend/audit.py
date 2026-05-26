@@ -79,11 +79,20 @@ def _changed_values(target: Any) -> tuple[Dict[str, Any], Dict[str, Any]]:
 
 
 def _write_log(connection, action: str, target: Any, old_values: Dict[str, Any] | None, new_values: Dict[str, Any] | None) -> None:
+    pk_str = _pk_string(target)
+    table_name = target.__table__.name
+    
+    print(f"\n[TRIGGER FIRED] {action} on table '{table_name}'")
+    print(f" -> PK: {pk_str}")
+    if old_values: print(f" -> OLD: {old_values}")
+    if new_values: print(f" -> NEW: {new_values}")
+    print("-" * 50)
+    
     connection.execute(
         AuditLog.__table__.insert().values(
-            table_name=target.__table__.name,
+            table_name=table_name,
             action=action,
-            record_pk=_pk_string(target),
+            record_pk=pk_str,
             changed_by="system",
             old_values=old_values,
             new_values=new_values,

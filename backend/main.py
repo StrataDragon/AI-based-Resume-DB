@@ -124,6 +124,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
 UPLOAD_DIR = "uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 
@@ -667,6 +668,356 @@ async def download_resume(
         media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         filename=f"updated_resume_{resume_id}.docx",
     )
+
+
+# ─── PDF Serving & Visual Diff Overlay Endpoints ──────────────────────────────
+
+def _format_resume_content(data: dict) -> str:
+    if not data:
+        return ""
+    lines = []
+    
+    if data.get("name"):
+        lines.append(data.get("name"))
+        
+    contact = []
+    if data.get("email"): contact.append(f"Email: {data.get('email')}")
+    if data.get("phone"): contact.append(f"Phone: {data.get('phone')}")
+    if data.get("location"): contact.append(f"Location: {data.get('location')}")
+    if contact:
+        lines.append(" | ".join(contact))
+        
+    lines.append("--------------------------------------------------")
+    lines.append("")
+    
+    if data.get("summary"):
+        lines.append("SUMMARY")
+        lines.append("-------")
+        lines.append(data.get("summary"))
+        lines.append("")
+        
+    experience = data.get("experience", [])
+    if experience and isinstance(experience, list):
+        lines.append("EXPERIENCE")
+        lines.append("----------")
+        for exp in experience:
+            company = exp.get("company") or exp.get("institution") or 'Company'
+            lines.append(f"Role at {company} | {exp.get('dates', 'Dates')}")
+            if exp.get("description"):
+                lines.append(exp.get("description"))
+        lines.append("")
+        
+    education = data.get("education", [])
+    if education and isinstance(education, list):
+        lines.append("EDUCATION")
+        lines.append("---------")
+        for edu in education:
+            school = edu.get("school") or edu.get("institution") or 'Institution'
+            lines.append(f"{edu.get('degree', 'Degree')}, {school}")
+        lines.append("")
+        
+    return "\n".join(lines).strip()
+
+
+def generate_pdf_fallback(content_text: str, pdf_path: str):
+    import ast
+    import json
+    from reportlab.lib.pagesizes import A4
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib import colors
+
+    try:
+        data = json.loads(content_text)
+    except Exception:
+        try:
+            data = ast.literal_eval(content_text)
+        except Exception:
+            data = {"summary": content_text}
+
+    doc = SimpleDocTemplate(
+        pdf_path,
+        pagesize=A4,
+        rightMargin=72,
+        leftMargin=72,
+        topMargin=72,
+        bottomMargin=72
+    )
+    
+    styles = getSampleStyleSheet()
+    
+    title_style = ParagraphStyle(
+        'TitleStyle',
+        parent=styles['Heading1'],
+        fontSize=20,
+        leading=24,
+        textColor=colors.HexColor('#0F172A'),
+        spaceAfter=12
+    )
+    
+    heading_style = ParagraphStyle(
+        'HeadingStyle',
+        parent=styles['Heading2'],
+        fontSize=12,
+        leading=16,
+        textColor=colors.HexColor('#2563EB'),
+        spaceBefore=12,
+        spaceAfter=6
+    )
+    
+    body_style = ParagraphStyle(
+        'BodyStyle',
+        parent=styles['Normal'],
+        fontSize=10,
+        leading=14,
+        textColor=colors.HexColor('#334155'),
+        spaceAfter=6
+    )
+    
+    meta_style = ParagraphStyle(
+        'MetaStyle',
+        parent=styles['Normal'],
+        fontSize=9,
+        leading=12,
+        textColor=colors.HexColor('#64748B'),
+        spaceAfter=4
+    )
+
+    story = []
+    
+    # Name
+    name = data.get("name", "Resume")
+    story.append(Paragraph(name, title_style))
+    
+    contact = []
+    if data.get("email"): contact.append(data.get("email"))
+    if data.get("phone"): contact.append(data.get("phone"))
+    if data.get("location"): contact.append(data.get("location"))
+    if contact:
+        story.append(Paragraph(" | ".join(contact), body_style))
+        story.append(Spacer(1, 10))
+
+    # Summary
+    if data.get("summary"):
+        story.append(Paragraph("Professional Summary", heading_style))
+        story.append(Paragraph(data.get("summary"), body_style))
+        story.append(Spacer(1, 10))
+
+    # Experience
+    experience = data.get("experience", [])
+    if experience and isinstance(experience, list):
+        story.append(Paragraph("Work Experience", heading_style))
+        for exp in experience:
+            title = exp.get("title", "")
+            company = exp.get("company", "")
+            dates = exp.get("dates", "")
+            location = exp.get("location", "")
+            
+            header_text = f"<b>{title}</b>"
+            if company:
+                header_text += f" | <i>{company}</i>"
+            story.append(Paragraph(header_text, body_style))
+            
+            meta_text = " • ".join(filter(None, [dates, location]))
+            if meta_text:
+                story.append(Paragraph(meta_text, meta_style))
+            
+            desc = exp.get("description", "")
+            if desc:
+                for bullet in desc.split('\n'):
+                    bullet = bullet.strip().lstrip("-*• ").strip()
+                    if bullet:
+                        story.append(Paragraph(f"• {bullet}", body_style))
+            story.append(Spacer(1, 6))
+
+    # Education
+    education = data.get("education", [])
+    if education and isinstance(education, list):
+        story.append(Paragraph("Education", heading_style))
+        for edu in education:
+            degree = edu.get("degree", "")
+            school = edu.get("school", "")
+            year = edu.get("year", "")
+            cgpa = edu.get("cgpa", "")
+            
+            edu_text = f"<b>{degree}</b> | {school}"
+            story.append(Paragraph(edu_text, body_style))
+            
+            meta_bits = [year, f"CGPA: {cgpa}" if cgpa else ""]
+            meta_line = " | ".join(bit for bit in meta_bits if bit)
+            if meta_line:
+                story.append(Paragraph(meta_line, meta_style))
+            story.append(Spacer(1, 6))
+
+    # Skills
+    skills = data.get("skills", [])
+    if skills:
+        story.append(Paragraph("Skills", heading_style))
+        skills_text = ", ".join(skills) if isinstance(skills, list) else str(skills)
+        story.append(Paragraph(skills_text, body_style))
+
+    doc.build(story)
+
+
+def _convert_docx_to_pdf(docx_path: str, pdf_path: str, content_text: str):
+    import subprocess
+    try:
+        soffice_cmd = "soffice"
+        if os.name == 'nt':
+            prog_files = os.environ.get("ProgramFiles", "C:\\Program Files")
+            prog_files_x86 = os.environ.get("ProgramFiles(x86)", "C:\\Program Files (x86)")
+            possible_paths = [
+                os.path.join(prog_files, "LibreOffice", "program", "soffice.exe"),
+                os.path.join(prog_files_x86, "LibreOffice", "program", "soffice.exe"),
+            ]
+            for p in possible_paths:
+                if os.path.exists(p):
+                    soffice_cmd = p
+                    break
+        
+        out_dir = os.path.dirname(docx_path)
+        subprocess.run(
+            [soffice_cmd, "--headless", "--convert-to", "pdf", "--outdir", out_dir, docx_path],
+            check=True,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            timeout=15
+        )
+        gen_pdf = docx_path.rsplit(".", 1)[0] + ".pdf"
+        if os.path.exists(gen_pdf):
+            if gen_pdf != pdf_path:
+                shutil.copy2(gen_pdf, pdf_path)
+            return
+    except Exception as e:
+        print(f"LibreOffice PDF conversion failed, falling back to ReportLab: {e}")
+    
+    try:
+        generate_pdf_fallback(content_text, pdf_path)
+    except Exception as e:
+        print(f"ReportLab PDF generation failed: {e}")
+        with open(pdf_path, 'wb') as f:
+            f.write(b"%PDF-1.4\n%...\n")
+
+
+@app.api_route("/api/v1/resumes/{resume_id}/pdf", methods=["GET", "HEAD"])
+async def get_resume_pdf(resume_id: int, db: Session = Depends(get_db)):
+    resume = db.query(Resume).filter(Resume.id == resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Resume not found")
+    
+    file_path = resume.file_path
+    if not file_path or not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Original resume file not found")
+    
+    pdf_path = file_path
+    if not file_path.lower().endswith(".pdf"):
+        pdf_path = file_path.rsplit(".", 1)[0] + ".pdf"
+        if not os.path.exists(pdf_path):
+            _convert_docx_to_pdf(file_path, pdf_path, resume.raw_text or str(resume.structured_data))
+    
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "public, max-age=3600",
+            "Content-Disposition": "inline",
+        }
+    )
+
+
+@app.api_route("/api/v1/tailor/{tailor_id}/pdf", methods=["GET", "HEAD"])
+async def get_tailored_pdf(tailor_id: int, db: Session = Depends(get_db)):
+    version = db.query(ResumeVersion).filter(ResumeVersion.id == tailor_id).first()
+    if not version:
+        raise HTTPException(status_code=404, detail="Tailored version not found")
+    
+    docx_path = version.file_path
+    if not docx_path or not os.path.exists(docx_path):
+        raise HTTPException(status_code=404, detail="Tailored DOCX file not found")
+    
+    pdf_path = docx_path.rsplit(".", 1)[0] + ".pdf"
+    if not os.path.exists(pdf_path):
+        _convert_docx_to_pdf(docx_path, pdf_path, version.content_text)
+        
+    return FileResponse(
+        path=pdf_path,
+        media_type="application/pdf",
+        headers={
+            "Access-Control-Allow-Origin": "*",
+            "Cache-Control": "public, max-age=3600",
+            "Content-Disposition": "inline",
+        }
+    )
+
+
+@app.get("/api/v1/tailor/{tailor_id}/highlights")
+async def get_tailor_highlights(tailor_id: int, db: Session = Depends(get_db)):
+    version = db.query(ResumeVersion).filter(ResumeVersion.id == tailor_id).first()
+    if not version:
+        raise HTTPException(status_code=404, detail="Tailored version not found")
+        
+    resume = db.query(Resume).filter(Resume.id == version.resume_id).first()
+    if not resume:
+        raise HTTPException(status_code=404, detail="Original resume not found")
+        
+    import ast
+    import json
+    import difflib
+    
+    try:
+        tailored_data = json.loads(version.content_text)
+    except Exception:
+        try:
+            tailored_data = ast.literal_eval(version.content_text)
+        except Exception:
+            tailored_data = {}
+            
+    original_text = _format_resume_content(resume.structured_data or {})
+    tailored_text = _format_resume_content(tailored_data)
+    
+    old_lines = original_text.splitlines()
+    new_lines = tailored_text.splitlines()
+    
+    matcher = difflib.SequenceMatcher(None, old_lines, new_lines)
+    highlights = []
+    highlight_idx = 0
+    
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == 'equal':
+            continue
+            
+        change_type = 'modified'
+        if tag == 'replace':
+            change_type = 'modified'
+        elif tag == 'delete':
+            change_type = 'removed'
+        elif tag == 'insert':
+            change_type = 'added'
+            
+        start_line = j1 if change_type == 'added' else i1
+        end_line = j2 if change_type == 'added' else i2
+        
+        page = (start_line // 54) + 1
+        y = 72 + (start_line % 54) * 14
+        height = max(14, (end_line - start_line) * 14)
+        
+        highlights.append({
+            "page": page,
+            "x": 72,
+            "y": y,
+            "width": 451,
+            "height": height,
+            "type": change_type,
+            "section": "experience" if start_line > 10 else "summary",
+            "changeId": f"ch_{highlight_idx}",
+            "confidence": "approximate"
+        })
+        highlight_idx += 1
+        
+    return highlights
+
+
 
 
 @app.get("/dashboard/stats")

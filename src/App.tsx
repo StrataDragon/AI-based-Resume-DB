@@ -11,6 +11,7 @@ import GapAnalysis from "./pages/GapAnalysis";
 import Candidates from "./pages/Candidates";
 import AuditLog from "./pages/AuditLog";
 import SchemaView from "./pages/SchemaView";
+import DiffPreviewer from "./pages/DiffPreviewer";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/candidates" element={<Candidates />} />
             <Route path="/audit" element={<AuditLog />} />
             <Route path="/schema" element={<SchemaView />} />
+            <Route path="/preview" element={<DiffPreviewer />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AppLayout>

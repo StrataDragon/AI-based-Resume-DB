@@ -8,6 +8,7 @@ import {
   Users,
   Database,
   Shield,
+  FileText,
 } from "lucide-react";
 
 const navItems = [
@@ -16,6 +17,7 @@ const navItems = [
   { to: "/jobs", icon: Briefcase, label: "Job Descriptions" },
   { to: "/gap-analysis", icon: GitCompare, label: "Gap Analysis" },
   { to: "/candidates", icon: Users, label: "Candidates" },
+  { to: "/preview", icon: FileText, label: "Diff Viewer" },
 ];
 
 const bottomItems = [

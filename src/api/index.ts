@@ -91,3 +91,20 @@ export const getAuditLogs = async (params?: { sinceId?: number; limit?: number }
     });
     return response.data;
 };
+
+// ─── PDF Serving & Visual Diff API Helpers ───────────────────────────────────
+import { HighlightRegion } from '@/types/tailoring';
+
+export function getResumePdfUrl(resumeId: string | number): string {
+    return `${API_URL}/api/v1/resumes/${resumeId}/pdf`;
+}
+
+export function getTailoredPdfUrl(tailorId: string | number): string {
+    return `${API_URL}/api/v1/tailor/${tailorId}/pdf`;
+}
+
+export const getTailorHighlights = async (tailorId: string | number): Promise<HighlightRegion[]> => {
+    const response = await api.get(`/api/v1/tailor/${tailorId}/highlights`);
+    return response.data;
+};
+

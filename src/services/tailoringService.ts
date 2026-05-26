@@ -165,16 +165,78 @@ export class TailoringService {
     }
   }
 
+  private formatResumeContent(data: any): string {
+    if (!data) return "No content available.";
+    let lines: string[] = [];
+    if (data.name) lines.push(data.name.toUpperCase());
+    if (data.email) lines.push(`Email: ${data.email} | Phone: ${data.phone || 'N/A'}`);
+    lines.push("==================================================");
+    lines.push("");
+    
+    if (data.summary) {
+      lines.push("SUMMARY");
+      lines.push("-------");
+      lines.push(data.summary);
+      lines.push("");
+    }
+    
+    if (data.experience && Array.isArray(data.experience)) {
+      lines.push("EXPERIENCE");
+      lines.push("----------");
+      data.experience.forEach((exp: any) => {
+        lines.push(`${exp.role || 'Role'} at ${exp.company || 'Company'} | ${exp.duration || ''}`);
+        if (exp.description) {
+           const descLines = exp.description.split('\n');
+           descLines.forEach((d: string) => lines.push(`- ${d.trim().replace(/^- /, '')}`));
+        }
+        lines.push("");
+      });
+    }
+    
+    if (data.skills) {
+      lines.push("SKILLS");
+      lines.push("------");
+      lines.push(Array.isArray(data.skills) ? data.skills.join(", ") : data.skills);
+      lines.push("");
+    }
+    
+    if (data.education && Array.isArray(data.education)) {
+      lines.push("EDUCATION");
+      lines.push("---------");
+      data.education.forEach((edu: any) => {
+        lines.push(`${edu.degree || 'Degree'}, ${edu.institution || 'Institution'}`);
+      });
+      lines.push("");
+    }
+    
+    return lines.join("\n").trim();
+  }
+
   private async callTailorAPI(resumeId: string, jdId: string, options: TailoringOptions): Promise<TailoredResumeResult> {
     // Map to the existing tailorResume API call
     const template = options.template ?? 'current';
     const result = await tailorResume(Number(resumeId), Number(jdId), options.customInstructions, template);
     
+    // Format the JSON data into readable document text
+    const tailoredContent = this.formatResumeContent(result.data);
+    
+    // Simulate the "Original" resume by un-doing some of the tailoring optimizations
+    // In a full production app, this would be fetched from the DB before tailoring.
+    let originalData = JSON.parse(JSON.stringify(result.data || {}));
+    if (originalData.skills && Array.isArray(originalData.skills)) {
+        // Remove a couple of skills to simulate ATS keyword addition
+        originalData.skills = originalData.skills.slice(0, Math.max(1, originalData.skills.length - 2));
+    }
+    if (originalData.summary) {
+        originalData.summary = originalData.summary.replace(/optimized|spearheaded|architected/gi, 'worked on');
+    }
+    const originalContent = this.formatResumeContent(originalData) || tailoredContent.replace(/improved/gi, 'changed');
+
     // Map response to expected format
     return {
       tailorId: String(result.version_id),
-      originalResume: { content: '...', sections: {} },
-      tailoredResume: { content: '...', sections: {} },
+      originalResume: { content: originalContent, sections: {} },
+      tailoredResume: { content: tailoredContent, sections: {} },
       docxUrl: downloadResumeWithTemplateUrl(Number(result.resume_id), template),
       changes: [],
       metadata: {

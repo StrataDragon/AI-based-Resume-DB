@@ -74,3 +74,16 @@ export interface TailoringRequest {
   timestamp: number;
   retryCount: number;
 }
+
+export interface HighlightRegion {
+  page: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  type: 'added' | 'removed' | 'modified';
+  section: string;
+  changeId: string;
+  confidence: 'approximate';
+}
+

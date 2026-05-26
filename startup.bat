@@ -13,8 +13,7 @@ set "NEED_SETUP=0"
 if not exist ".venv\Scripts\python.exe" set "NEED_SETUP=1"
 if not exist "node_modules" set "NEED_SETUP=1"
 if "%NEED_SETUP%"=="0" (
-    .venv\Scripts\python.exe -c "import langchain_community" >nul 2>&1
-    if errorlevel 1 set "NEED_SETUP=1"
+    .venv\Scripts\python.exe -c "import langchain_community" >nul 2>&1 || set "NEED_SETUP=1"
 )
 
 if "%NEED_SETUP%"=="1" (
@@ -23,23 +22,28 @@ if "%NEED_SETUP%"=="1" (
 
     if not exist ".venv" (
         echo   Creating Python venv...
-        python -m venv .venv
-        if errorlevel 1 (
-            echo [ERROR] Python not found. Install Python 3.10+
-            pause & exit /b 1
+        python -m venv .venv || (
+            echo [ERROR] python -m venv failed. Trying 'py' command...
+            py -m venv .venv || (
+                echo [ERROR] Python not found. Please install Python 3.10+ and add it to PATH.
+                pause & exit /b 1
+            )
         )
     )
 
+    echo   Upgrading pip...
+    .venv\Scripts\python.exe -m pip install --upgrade pip -q || (
+        echo [WARNING] Failed to upgrade pip. Continuing with install...
+    )
+
     echo   Installing backend deps...
-    .venv\Scripts\python.exe -m pip install -r backend\requirements.txt -q
-    if errorlevel 1 (
-        echo [ERROR] pip install failed.
+    .venv\Scripts\python.exe -m pip install -r backend\requirements.txt || (
+        echo [ERROR] pip install failed. Please check your internet connection or Python version.
         pause & exit /b 1
     )
 
     echo   Installing frontend deps...
-    call npm install --silent
-    if errorlevel 1 (
+    call npm install --no-audit --no-fund || (
         echo [ERROR] npm install failed.
         pause & exit /b 1
     )
@@ -52,14 +56,23 @@ if "%NEED_SETUP%"=="1" (
 )
 
 REM ── Launch both servers ──
-start "Backend"  cmd /k ".venv\Scripts\python.exe -m backend.main"
+echo   Starting Backend server...
+start "Backend Server" cmd /k ".venv\Scripts\python.exe -m backend.main"
 timeout /t 2 /nobreak >nul
-start "Frontend" cmd /k "npm run dev"
 
+echo   Starting Frontend dev server...
+start "Frontend Server" cmd /k "npm run dev"
+
+echo.
+echo ============================================
+echo   SERVERS STARTED SUCCESSFULY
+echo --------------------------------------------
 echo   Backend  : http://localhost:8000
 echo   Frontend : http://localhost:5173
 echo.
-echo   Close each window to stop its service.
+echo   Press any key to close this launcher.
+echo   (The servers will keep running in their own windows)
 echo ============================================
+pause >nul
 
 endlocal
